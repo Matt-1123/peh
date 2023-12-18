@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 // import "./App.css";
 import "@aws-amplify/ui-react/styles.css";
-import { generateClient } from "aws-amplify/api";
+import { generateClient, Storage } from "aws-amplify/api";
 import {
   Button,
   Flex,
   Heading,
+  Image,
   Text,
   TextField,
   View,
@@ -30,6 +31,15 @@ const App = ({ signOut }) => {
   async function fetchNotes() {
     const apiData = await client.graphql({ query: listNotes });
     const notesFromAPI = apiData.data.listNotes.items;
+    await Promise.all(
+      notesFromAPI.map(async (note) => {
+        if (note.image) {
+          const url = await Storage.get(note.name);
+          note.image = url;
+        }
+        return note;
+      })
+    );
     setNotes(notesFromAPI);
   }
 
@@ -37,10 +47,13 @@ const App = ({ signOut }) => {
   async function createNote(event) {
     event.preventDefault();
     const form = new FormData(event.target);
+    const image = form.get("Image");
     const data = {
       name: form.get("name"),
       description: form.get("description"),
+      image: image.name,
     };
+    if (!!data.image) await Storage.put(data.name, image);
     await client.graphql({
       query: createNoteMutation,
       variables: { input: data },
@@ -50,9 +63,10 @@ const App = ({ signOut }) => {
   }
 
   // this function is sending a GraphQL mutation along with some variables, but instead of creating a note, we are deleting a note.
-  async function deleteNote({ id }) {
+  async function deleteNote({ id, name }) {
     const newNotes = notes.filter((note) => note.id !== id);
     setNotes(newNotes);
+    await Storage.remove(name);
     await client.graphql({
       query: deleteNoteMutation,
       variables: { input: { id } },
@@ -80,6 +94,12 @@ const App = ({ signOut }) => {
             variation="quiet"
             required
           />
+          <View
+            name="image"
+            as="input"
+            type="file"
+            style={{ alignSelf: "end" }}
+          />
           <Button type="submit" variation="primary">
             Create Note
           </Button>
@@ -98,6 +118,13 @@ const App = ({ signOut }) => {
               {note.name}
             </Text>
             <Text as="span">{note.description}</Text>
+            {note.image && (
+              <Image
+                src={note.image}
+                alt={`visual aid for ${notes.name}`}
+                style={{ width: 400 }}
+              />
+            )}
             <Button variation="link" onClick={() => deleteNote(note)}>
               Delete note
             </Button>
