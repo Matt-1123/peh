@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from "react";
-// import "./App.css";
+
+import { Amplify } from "aws-amplify";
+
 import "@aws-amplify/ui-react/styles.css";
+
+import { studioTheme } from "./ui-components";
+
 import { uploadData, getUrl, remove } from "aws-amplify/storage";
 import { generateClient } from "aws-amplify/api";
 import {
+  ThemeProvider,
   Button,
   Flex,
   Heading,
@@ -13,6 +19,7 @@ import {
   View,
   withAuthenticator,
 } from "@aws-amplify/ui-react";
+import { NoteV2 } from "./ui-components";
 import { listNotes } from "./graphql/queries";
 import {
   createNote as createNoteMutation,
@@ -32,12 +39,14 @@ const App = ({ signOut }) => {
   async function fetchNotes() {
     const apiData = await client.graphql({ query: listNotes });
     const notesFromAPI = apiData.data.listNotes.items;
+    console.log(`notes from API: ${JSON.stringify(notesFromAPI)}`);
     await Promise.all(
       notesFromAPI.map(async (note) => {
         if (note.image) {
           // const url = await Storage.get(note.name);
           // ^ v6 of amplify-cli uses new methods below
           const url = await getUrl({ key: note.id });
+          console.log(`image url: ${JSON.stringify(url)}`);
           note.image = url;
         }
         return note;
@@ -142,7 +151,22 @@ const App = ({ signOut }) => {
   return (
     <View className="App">
       <Heading level={1}>My Notes App</Heading>
-      <View as="form" margin="3rem 0" onSubmit={createNote}>
+      <NoteV2
+        onSubmit={createNote}
+        // onSubmit={(fields) => {
+        //   // Example function to trim all string inputs
+        //   const updatedFields = {};
+        //   Object.keys(fields).forEach((key) => {
+        //     if (typeof fields[key] === "string") {
+        //       updatedFields[key] = fields[key].trim();
+        //     } else {
+        //       updatedFields[key] = fields[key];
+        //     }
+        //   });
+        //   return updatedFields;
+        // }}
+      />
+      {/* <View as="form" margin="3rem 0" onSubmit={createNote}>
         <Flex direction="row" justifyContent="center">
           <TextField
             name="name"
@@ -170,7 +194,7 @@ const App = ({ signOut }) => {
             Create Note
           </Button>
         </Flex>
-      </View>
+      </View> */}
       <Heading level={2}>Current Notes</Heading>
       <View margin="3rem 0">
         {notes.map((note) => (
