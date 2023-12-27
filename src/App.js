@@ -20,8 +20,13 @@ import {
   withAuthenticator,
 } from "@aws-amplify/ui-react";
 import { NoteV2 } from "./ui-components";
-import { listNotes } from "./graphql/queries";
+
+// GraphQL
+import { listNotes, listTravelActions } from "./graphql/queries";
+
 import {
+  createTravelAction,
+  deleteTravelAction,
   createNote as createNoteMutation,
   deleteNote as deleteNoteMutation,
 } from "./graphql/mutations";
@@ -54,6 +59,16 @@ const App = ({ signOut }) => {
     );
     setNotes(notesFromAPI);
   }
+
+  // List all items
+  const fetchTravelActions = async () => {
+    async function fetchNotes() {
+      const allTravelActions = await client.graphql({
+        query: listTravelActions,
+      });
+      console.log(allTravelActions);
+    }
+  };
 
   async function createNote(event) {
     event.preventDefault();
